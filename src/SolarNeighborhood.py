@@ -11,7 +11,7 @@ import sys
 import utils as u
 import warnings
 
-def build_gal_ring(R):
+def build_gal_ring(R, ra_hr, ra_min, decl):
     theta = np.linspace(0, 2 * np.pi, 100)  
 
     # Initial ring in xy-plane (equatorial)
@@ -19,9 +19,9 @@ def build_gal_ring(R):
     y = R * np.sin(theta)
     z = np.zeros_like(theta)
 
-    ra_gal = u.calc_right_asc(c.GAL_RA_HR, c.GAL_RA_MIN, c.GAL_RA_SEC)
+    ra_gal = u.calc_right_asc(ra_hr, ra_min, 0)
     ra_gal = np.radians(ra_gal) 
-    decl_gal = np.radians(c.GAL_DECL)
+    decl_gal = np.radians(decl)
 
     # Rotate around z by right ascension
     Rz = np.array([
@@ -38,26 +38,26 @@ def build_gal_ring(R):
     ])
 
     coords = np.vstack([x, y, z])
-    coords_rotated = Rx @ Rz @ coords 
+    coords_rotated = Rz @ Rx @ coords 
 
     x_rot, y_rot, z_rot = coords_rotated
     
     return x_rot, y_rot, z_rot
 
 def add_ring(fig, R, name='Galactic Plane', color='blue'):
-    Xs, Ys, Zs = build_gal_ring(R)
+    Xs, Ys, Zs = build_gal_ring(R,c.GAL_RA_HR,c.GAL_RA_MIN,c.GAL_DECL)
     
     fig.add_trace(go.Scatter3d(
             x=Xs, y=Ys, z=Zs,
             mode='lines',
             line=dict(color=color, width=2),
-            name=name
-        ))
+            name=name))
 
 def main():
     parser = argparse.ArgumentParser(description='A compact utility for observing the local solar neighborhood')
     parser.add_argument('-s','--silent',help='Silences console output of stellar data',action='store_true')
     parser.add_argument('-r','--rings',help='Specify between [0-3] (inclusive) how many galactic rings to display',type=int,default=1,choices=range(0,4))
+    parser.add_argument('-t','--text',help='Display name of planets above plot markers', action='store_true')
     args = parser.parse_args()
     
     import warnings
@@ -90,9 +90,12 @@ def main():
         curr_mass = float(curr_mass)
         masses = np.append(masses, curr_mass)
         
+        curr_name = row[0]
+        
         if not silent:
+            print(f'{Fore.BLUE}[Star]{Style.RESET_ALL}: {Fore.BLUE}{curr_name}{Style.RESET_ALL}')
             print(f'{Fore.MAGENTA}[Distance]{Style.RESET_ALL} {Fore.CYAN}{curr_dist:.3f} ly{Style.RESET_ALL}, {Fore.CYAN}{parsecs:.3f} pc{Style.RESET_ALL}')
-            print(f"{Fore.YELLOW}[Eqt Cord]{Style.RESET_ALL} right ascension: {Fore.GREEN}{right_asc}{Style.RESET_ALL}, declination: {Fore.GREEN}{decl}{Style.RESET_ALL}")
+            print(f'{Fore.YELLOW}[Eqt Cord]{Style.RESET_ALL} right ascension: {Fore.GREEN}{right_asc}{Style.RESET_ALL}, declination: {Fore.GREEN}{decl}{Style.RESET_ALL}')
 
         ra_hr, ra_min, ra_sec = u.match_pattern(ra_pattern,right_asc,deg_val=False)
         decl_deg, decl_min, decl_sec = u.match_pattern(decl_pattern,decl)
@@ -106,7 +109,8 @@ def main():
         x, y, z = u.sph_cord2cart(parsecs, right_asc, decl)
         Xs = np.append(Xs,x)
         Ys = np.append(Ys,y)
-        Zs = np.append(Zs,-z) # Negate Z to flip axis
+        Zs = np.append(Zs,z) 
+        
         
     if len(near_star) == len(Xs) == len(Ys) == len(Zs) == len(masses):
         near_star['x'] = Xs
@@ -114,7 +118,7 @@ def main():
         near_star['z'] = Zs
         near_star['mass'] = masses
     else:
-        print("Error: failed to process new columns of near_star DataFrame")
+        print('Error: failed to process new columns of near_star DataFrame')
         sys.exit()
         
     near_star['stellar_class'] = near_star['Stellar\nclass'].str[0]
@@ -123,10 +127,26 @@ def main():
                     'y': 'Y (Parsecs)',
                     'z': 'Z (Parsecs)'}
     
-    fig = px.scatter_3d(near_star, x='x', y='y', z='z', title='SolarNeighborhood Navigator', 
-                        hover_name='Designation', size='mass', color='stellar_class', 
-                        color_discrete_map=c.COLOR_MAP, labels=label_dict)
+    text_dict = {'text': 'Designation'} if args.text else {}
+    
+    fig = px.scatter_3d(near_star, 
+                        x='x',
+                        y='y', 
+                        z='z', 
+                        title='SolarNeighborhood Navigator', 
+                        size='mass', color='stellar_class', 
+                        color_discrete_map=c.COLOR_MAP, 
+                        labels=label_dict,
+                        **text_dict)
+
     fig.update_layout(template='plotly_dark')
+
+    font_dict = {'family': 'Courier New, monospace',
+                        'size': 10, 
+                        'color': 'RebeccaPurple'}
+
+    if args.text:
+        fig.update_layout(font=font_dict)
     
     num_rings = args.rings
     if num_rings == 1:

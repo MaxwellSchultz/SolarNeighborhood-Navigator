@@ -31,8 +31,8 @@ def match_pattern(pattern, coordinates, deg_val=True):
         sys.exit(2)
         
 def sph_cord2cart(r,theta,phi):
-        x = r * math.sin(math.radians(theta)) * math.cos(math.radians(phi))
-        y = r * math.sin(math.radians(theta)) * math.sin(math.radians(phi))
-        z = r * math.cos(math.radians(theta))
+        x = r * math.cos(math.radians(theta)) * math.cos(math.radians(phi))
+        y = r * math.sin(math.radians(theta)) * math.cos(math.radians(phi))
+        z = r * math.sin(math.radians(phi))
         
         return x, y, z
