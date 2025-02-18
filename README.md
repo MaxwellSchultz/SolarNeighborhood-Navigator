@@ -31,10 +31,10 @@ $ make init
 $ python src/SolarNeighborhood.py
 ```
 
-There are a couple command-line arguments for changing the behavior of the SN Navigator.
+There are a few command-line arguments for changing the behavior of the SN Navigator.
  `-t`/`--text` renders the names of the star system next to the graph marker, this currently adds to the load time of the utility. `-s`/`--silent` mutes the std output printing the data for all the stars being displayed. `-r`/`--rings` accepts integer values between 0-3 (inclusive) which determines how many concentric rings are displayed along the galactic plane. This defaults to 1, and can be disabled with a 0 value.
 ```bash
-$ python src/SolarNeighborhood.py -s -r 3
+$ python src/SolarNeighborhood.py -t -s -r 3
 ```
 
 
